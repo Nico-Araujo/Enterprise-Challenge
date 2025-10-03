@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime
-import joblib
-import json
 import os
 
 # Configuração da página
@@ -23,12 +19,6 @@ st.markdown('''
         text-align: center;
         margin-bottom: 2rem;
     }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #1f77b4;
-    }
 </style>
 ''', unsafe_allow_html=True)
 
@@ -43,44 +33,38 @@ uploaded_file = st.sidebar.file_uploader('Carregar dados', type=['csv'])
 @st.cache_data
 def load_data():
     try:
-        # Método 1: Tentar carregar da pasta raiz (../)
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.dirname(current_dir)  # sobe para a pasta raiz
-        csv_path = os.path.join(root_dir, 'dados_finais_ml.csv')
+        # Tentar vários caminhos possíveis
+        caminhos = [
+            '../dados_finais_ml.csv',  # Pasta raiz
+            'dados_finais_ml.csv',     # Pasta atual
+        ]
         
-        if os.path.exists(csv_path):
-            return pd.read_csv(csv_path)
+        for caminho in caminhos:
+            if os.path.exists(caminho):
+                df = pd.read_csv(caminho)
+                st.success(f"✅ Arquivo encontrado em: {caminho}")
+                return df
         
-        # Método 2: Tentar caminho relativo simples
-        elif os.path.exists('../dados_finais_ml.csv'):
-            return pd.read_csv('../dados_finais_ml.csv')
-        
-        # Método 3: Se usuário fez upload
-        elif uploaded_file is not None:
+        # Se usuário fez upload
+        if uploaded_file is not None:
             return pd.read_csv(uploaded_file)
         
-        # Método 4: Tentar na pasta atual (fallback)
-        elif os.path.exists('dados_finais_ml.csv'):
-            return pd.read_csv('dados_finais_ml.csv')
-        
-        else:
-            st.info("📁 Arquivo 'dados_finais_ml.csv' não encontrado. Use o upload na sidebar.")
-            return pd.DataFrame()
+        return pd.DataFrame()
 
     except Exception as e:
-        st.error(f'❌ Erro ao carregar dados: {str(e)}')
+        st.error(f'Erro ao carregar dados: {str(e)}')
         return pd.DataFrame()
 
 df = load_data()
 
 if not df.empty:
-    st.success(f"✅ Dados carregados com sucesso! {len(df)} registros encontrados.")
+    st.success(f"Dados carregados: {len(df)} registros")
     
     # KPIs
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric('Total de Leituras', f'{len(df):,}')
+        st.metric('Total de Leituras', len(df))
 
     with col2:
         criticos = len(df[df.get('estado_alerta', '') == 'CRITICO']) if 'estado_alerta' in df.columns else 0
@@ -99,41 +83,34 @@ if not df.empty:
 
     with tab1:
         if 'temperatura' in df.columns and 'data_hora_ms' in df.columns:
-            fig_temp = px.line(df, x='data_hora_ms', y='temperatura',
-                             title='Temperatura ao Longo do Tempo')
+            fig_temp = px.line(df, x='data_hora_ms', y='temperatura', title='Temperatura ao Longo do Tempo')
             st.plotly_chart(fig_temp, use_container_width=True)
         else:
-            colunas_disponiveis = [col for col in df.columns if 'temp' in col.lower() or 'time' in col.lower() or 'data' in col.lower()]
-            st.warning(f'Dados de temperatura ou timestamp não disponíveis. Colunas disponíveis: {", ".join(colunas_disponiveis)}')
+            st.warning('Dados de temperatura ou timestamp não disponíveis')
 
     with tab2:
         if all(col in df.columns for col in ['temperatura', 'vibracao']):
-            fig_scatter = px.scatter(df, x='temperatura', y='vibracao',
-                                   color='estado_alerta' if 'estado_alerta' in df.columns else None,
-                                   title='Relação Temperatura vs Vibração')
+            fig_scatter = px.scatter(df, x='temperatura', y='vibracao', title='Relação Temperatura vs Vibração')
             st.plotly_chart(fig_scatter, use_container_width=True)
         else:
-            colunas_numericas = df.select_dtypes(include=['number']).columns.tolist()
-            st.warning(f'Dados de temperatura ou vibração não disponíveis. Colunas numéricas disponíveis: {", ".join(colunas_numericas[:5])}')
+            st.warning('Dados de temperatura ou vibração não disponíveis')
 
     with tab3:
         if 'estado_alerta' in df.columns:
             alert_counts = df['estado_alerta'].value_counts()
-            fig_alerts = px.pie(values=alert_counts.values, names=alert_counts.index,
-                              title='Distribuição de Alertas')
+            fig_alerts = px.pie(values=alert_counts.values, names=alert_counts.index, title='Distribuição de Alertas')
             st.plotly_chart(fig_alerts, use_container_width=True)
         else:
-            st.warning('Dados de alerta não disponíveis para distribuição.')
+            st.warning('Dados de alerta não disponíveis')
 
 else:
-    st.warning('''
-⚠️ **Sistema não inicializado**
+    st.error("⚠️ SISTEMA NÃO INICIALIZADO")
+    st.write("Para usar o dashboard:")
+    st.write("1. Execute o pipeline de Machine Learning")
+    st.write("2. Certifique-se que 'dados_finais_ml.csv' existe na pasta raiz")
+    st.write("3. Ou faça upload do arquivo na sidebar")
+    st.write("4. Recarregue esta página")
 
-Para usar o dashboard:
-
-1. **Execute o pipeline de Machine Learning**  
-2. **Certifique-se que 'dados_finais_ml.csv' existe na pasta raiz**  
-3. **Ou faça upload do arquivo na sidebar** ← 🆕
-4. **Recarregue esta página**  
-
-📁 **Estrutura esperada:**'''
+# Rodapé
+st.markdown('---')
+st.markdown('**Hermes Reply - Fase 4** | Pipeline Integrado: Sensores → ML → Dashboard')
