@@ -130,13 +130,28 @@ if not df.empty:
         col1_anal, col2_anal = st.columns(2)
         
         with col1_anal:
-            # Temperatura vs Vibração
-            if all(col in df.columns for col in ['temperatura', 'vibracao']):
-                fig_scatter = px.scatter(df, x='temperatura', y='vibracao',
-                                       color='estado_alerta',
-                                       title='Temperatura vs Vibração (Colorido por Alerta)',
-                                       color_discrete_map={'NORMAL': 'green', 'ALERTA': 'orange', 'CRITICO': 'red'})
-                st.plotly_chart(fig_scatter, use_container_width=True)
+            # Temperatura vs Vibração - CORRIGIDO
+            if all(col in df.columns for col in ['temperatura', 'vibracao', 'estado_alerta']):
+                # Verificar se há dados válidos
+                temp_validos = df['temperatura'].notna() & df['vibracao'].notna()
+                df_valid = df[temp_validos]
+                
+                if len(df_valid) > 0:
+                    fig_scatter = px.scatter(
+                        df_valid, 
+                        x='temperatura', 
+                        y='vibracao',
+                        color='estado_alerta',
+                        title='Temperatura vs Vibração (Colorido por Alerta)',
+                        color_discrete_map={
+                            'NORMAL': 'green', 
+                            'ALERTA': 'orange', 
+                            'CRITICO': 'red'
+                        }
+                    )
+                    st.plotly_chart(fig_scatter, use_container_width=True)
+                else:
+                    st.warning("Dados insuficientes para o gráfico de dispersão")
         
         with col2_anal:
             # Médias móveis
@@ -153,14 +168,40 @@ if not df.empty:
         col1_alert, col2_alert = st.columns(2)
         
         with col1_alert:
-            # Distribuição de alertas
+            # Distribuição de alertas - CORRIGIDO
             if 'estado_alerta' in df.columns:
-                alert_counts = df['estado_alerta'].value_counts()
-                fig_alerts = px.pie(values=alert_counts.values, names=alert_counts.index,
-                                  title='Distribuição de Estados de Alerta',
-                                  color=alert_counts.index,
-                                  color_discrete_map={'NORMAL': 'green', 'ALERTA': 'orange', 'CRITICO': 'red'})
-                st.plotly_chart(fig_alerts, use_container_width=True)
+                # Contagem manual para garantir precisão
+                alert_counts = {
+                    'NORMAL': len(df[df['estado_alerta'] == 'NORMAL']),
+                    'ALERTA': len(df[df['estado_alerta'] == 'ALERTA']),
+                    'CRITICO': len(df[df['estado_alerta'] == 'CRITICO'])
+                }
+                
+                # Criar DataFrame para o gráfico
+                alert_df = pd.DataFrame({
+                    'estado': list(alert_counts.keys()),
+                    'quantidade': list(alert_counts.values())
+                })
+                
+                # Filtrar apenas estados com quantidade > 0
+                alert_df = alert_df[alert_df['quantidade'] > 0]
+                
+                if len(alert_df) > 0:
+                    fig_alerts = px.pie(
+                        alert_df, 
+                        values='quantidade', 
+                        names='estado',
+                        title='Distribuição de Estados de Alerta',
+                        color='estado',
+                        color_discrete_map={
+                            'NORMAL': 'green', 
+                            'ALERTA': 'orange', 
+                            'CRITICO': 'red'
+                        }
+                    )
+                    st.plotly_chart(fig_alerts, use_container_width=True)
+                else:
+                    st.warning("Nenhum dado de alerta disponível")
         
         with col2_alert:
             # Scores de anomalia
@@ -191,31 +232,45 @@ if not df.empty:
             with col1_clust:
                 # Distribuição de clusters - CORRIGIDO
                 cluster_counts = df['cluster_str'].value_counts().sort_index()
+                
+                # Criar DataFrame para garantir que o gráfico funcione
+                cluster_df = pd.DataFrame({
+                    'cluster': cluster_counts.index,
+                    'quantidade': cluster_counts.values
+                })
+                
                 fig_cluster_bar = px.bar(
-                    x=cluster_counts.index, 
-                    y=cluster_counts.values,
+                    cluster_df,
+                    x='cluster', 
+                    y='quantidade',
                     title='Distribuição de Clusters',
-                    labels={'x': 'Cluster', 'y': 'Quantidade de Registros'},
-                    color=cluster_counts.index,
+                    labels={'quantidade': 'Quantidade de Registros'},
+                    color='cluster',
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 fig_cluster_bar.update_layout(showlegend=False)
                 st.plotly_chart(fig_cluster_bar, use_container_width=True)
                 
-                # Scatter plot clusters - CORRIGIDO
+                # Scatter plot clusters
                 if all(col in df.columns for col in ['temperatura', 'vibracao']):
-                    fig_cluster_scatter = px.scatter(
-                        df, 
-                        x='temperatura', 
-                        y='vibracao',
-                        color='cluster_str',
-                        title='Clusters: Temperatura vs Vibração',
-                        color_discrete_sequence=px.colors.qualitative.Set3
-                    )
-                    st.plotly_chart(fig_cluster_scatter, use_container_width=True)
+                    # Filtrar dados válidos
+                    cluster_valid = df[df['temperatura'].notna() & df['vibracao'].notna()]
+                    
+                    if len(cluster_valid) > 0:
+                        fig_cluster_scatter = px.scatter(
+                            cluster_valid, 
+                            x='temperatura', 
+                            y='vibracao',
+                            color='cluster_str',
+                            title='Clusters: Temperatura vs Vibração',
+                            color_discrete_sequence=px.colors.qualitative.Set3
+                        )
+                        st.plotly_chart(fig_cluster_scatter, use_container_width=True)
+                    else:
+                        st.warning("Dados insuficientes para scatter plot de clusters")
             
             with col2_clust:
-                # Box plot por cluster - CORRIGIDO
+                # Box plot por cluster
                 fig_cluster_temp = px.box(
                     df, 
                     x='cluster_str', 
