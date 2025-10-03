@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
+from datetime import datetime
 
 # Configuração da página
 st.set_page_config(
@@ -50,8 +51,13 @@ if not df.empty:
     st.sidebar.subheader("🔍 Debug Info")
     st.sidebar.write(f"Colunas: {list(df.columns)}")
     st.sidebar.write(f"Total de linhas: {len(df)}")
-    st.sidebar.write(f"Tipos de dados:")
-    st.sidebar.write(df.dtypes)
+    
+    # Encontrar colunas relevantes
+    colunas_numericas = df.select_dtypes(include=['number']).columns.tolist()
+    colunas_texto = df.select_dtypes(include=['object']).columns.tolist()
+    
+    st.sidebar.write(f"Colunas numéricas: {colunas_numericas}")
+    st.sidebar.write(f"Colunas texto: {colunas_texto}")
     
     st.success(f"Dados carregados: {len(df)} registros")
     
@@ -65,51 +71,80 @@ if not df.empty:
         st.metric('Colunas Disponíveis', len(df.columns))
 
     with col3:
-        colunas_numericas = df.select_dtypes(include=['number']).columns.tolist()
         st.metric('Colunas Numéricas', len(colunas_numericas))
 
     with col4:
-        colunas_texto = df.select_dtypes(include=['object']).columns.tolist()
         st.metric('Colunas Texto', len(colunas_texto))
 
-    # Gráficos - DEBUG DETALHADO
-    tab1, tab2, tab3 = st.tabs(['📈 Debug Gráficos', '📊 Dados Completos', '🔍 Análise'])
+    # Gráficos - CORRIGIDO
+    tab1, tab2, tab3 = st.tabs(['📈 Gráficos Principais', '📊 Dados Completos', '🔍 Análise'])
 
     with tab1:
-        st.subheader("Teste de Gráficos")
+        st.subheader("Visualizações dos Dados")
         
-        # Teste 1: Gráfico simples com primeiras colunas numéricas
-        colunas_numericas = df.select_dtypes(include=['number']).columns.tolist()
-        st.write(f"Colunas numéricas disponíveis: {colunas_numericas}")
+        # GRÁFICO 1: Encontrar colunas de sensores (temperatura, vibração, etc.)
+        colunas_sensor = [col for col in colunas_numericas if any(word in col.lower() for word in 
+                        ['temp', 'vibra', 'acel', 'press', 'corrente', 'tensao', 'rpm', 'veloc'])]
         
-        if len(colunas_numericas) >= 2:
-            col_x = colunas_numericas[0]
-            col_y = colunas_numericas[1]
+        if len(colunas_sensor) >= 2:
+            col1_graf, col2_graf = st.columns(2)
             
-            st.write(f"Tentando plotar: {col_x} vs {col_y}")
-            st.write(f"Valores únicos em {col_x}: {df[col_x].nunique()}")
-            st.write(f"Valores únicos em {col_y}: {df[col_y].nunique()}")
-            
-            # Verificar se há dados válidos
-            if df[col_x].notna().any() and df[col_y].notna().any():
-                try:
-                    fig_test = px.scatter(df, x=col_x, y=col_y, title=f'Teste: {col_x} vs {col_y}')
-                    st.plotly_chart(fig_test, use_container_width=True)
-                    st.success("✅ Gráfico de teste plotado com sucesso!")
-                except Exception as e:
-                    st.error(f"❌ Erro ao plotar gráfico: {e}")
-            else:
-                st.warning("⚠️ Dados contêm valores NaN")
+            with col1_graf:
+                # Scatter plot entre dois sensores
+                sensor_x = st.selectbox("Eixo X:", colunas_sensor, index=0)
+                sensor_y = st.selectbox("Eixo Y:", colunas_sensor, index=min(1, len(colunas_sensor)-1))
                 
-        else:
-            st.error("❌ Não há colunas numéricas suficientes para plotar")
-
-        # Teste 2: Histograma simples
-        if colunas_numericas:
-            col_hist = colunas_numericas[0]
-            st.write(f"Histograma de {col_hist}")
-            fig_hist = px.histogram(df, x=col_hist, title=f'Distribuição de {col_hist}')
+                fig_scatter = px.scatter(df, x=sensor_x, y=sensor_y, 
+                                       title=f'{sensor_x} vs {sensor_y}')
+                st.plotly_chart(fig_scatter, use_container_width=True)
+            
+            with col2_graf:
+                # Histograma do primeiro sensor
+                sensor_hist = st.selectbox("Histograma:", colunas_sensor, index=0)
+                fig_hist = px.histogram(df, x=sensor_hist, title=f'Distribuição de {sensor_hist}')
+                st.plotly_chart(fig_hist, use_container_width=True)
+                
+        elif colunas_sensor:
+            # Se só tem uma coluna de sensor
+            sensor = colunas_sensor[0]
+            fig_hist = px.histogram(df, x=sensor, title=f'Distribuição de {sensor}')
             st.plotly_chart(fig_hist, use_container_width=True)
+        else:
+            st.warning("Nenhuma coluna de sensor identificada. Mostrando primeiras colunas numéricas:")
+            if len(colunas_numericas) >= 2:
+                fig_scatter = px.scatter(df, x=colunas_numericas[0], y=colunas_numericas[1])
+                st.plotly_chart(fig_scatter, use_container_width=True)
+
+        # GRÁFICO 2: Série temporal se tiver timestamp
+        coluna_tempo = next((col for col in df.columns if any(word in col.lower() for word in 
+                          ['time', 'data', 'hora', 'timestamp', 'date'])), None)
+        
+        if coluna_tempo and colunas_sensor:
+            st.subheader("Série Temporal")
+            sensor_tempo = st.selectbox("Sensor para série temporal:", colunas_sensor, key='temp_sensor')
+            
+            # Tentar converter para datetime se possível
+            try:
+                if df[coluna_tempo].dtype == 'object':
+                    df_temp = df.copy()
+                    # Tentar converter timestamp milissegundos
+                    if df[coluna_tempo].astype(str).str.contains('1.7').any():
+                        df_temp[coluna_tempo] = pd.to_datetime(df[coluna_tempo].astype(float), unit='ms')
+                    else:
+                        df_temp[coluna_tempo] = pd.to_datetime(df[coluna_tempo])
+                    
+                    fig_time = px.line(df_temp, x=coluna_tempo, y=sensor_tempo, 
+                                     title=f'{sensor_tempo} ao Longo do Tempo')
+                    st.plotly_chart(fig_time, use_container_width=True)
+                else:
+                    fig_time = px.line(df, x=coluna_tempo, y=sensor_tempo, 
+                                     title=f'{sensor_tempo} ao Longo do Tempo')
+                    st.plotly_chart(fig_time, use_container_width=True)
+            except:
+                # Se falhar a conversão, usar como numérico
+                fig_time = px.line(df, x=coluna_tempo, y=sensor_tempo, 
+                                 title=f'{sensor_tempo} vs {coluna_tempo}')
+                st.plotly_chart(fig_time, use_container_width=True)
 
     with tab2:
         st.subheader("Dados Completos")
@@ -117,25 +152,23 @@ if not df.empty:
         
         st.subheader("Estatísticas Descritivas")
         st.write(df.describe())
-        
-        st.subheader("Info do DataFrame")
-        st.write(f"Shape: {df.shape}")
-        st.write(f"Colunas: {list(df.columns)}")
-        st.write("Tipos de dados:")
-        st.write(df.dtypes)
 
     with tab3:
         st.subheader("Análise de Valores")
         
-        # Mostrar valores únicos para cada coluna
-        for coluna in df.columns:
-            with st.expander(f"Coluna: {coluna} ({df[coluna].dtype})"):
-                st.write(f"Valores únicos: {df[coluna].nunique()}")
-                st.write(f"Valores nulos: {df[coluna].isna().sum()}")
-                if df[coluna].nunique() <= 20:  # Mostrar valores se não forem muitos
-                    st.write(f"Valores: {df[coluna].unique()}")
-                else:
-                    st.write(f"Primeiros valores: {df[coluna].head(10).tolist()}")
+        # Mostrar valores únicos para colunas numéricas
+        st.write("**Colunas Numéricas:**")
+        for coluna in colunas_numericas:
+            with st.expander(f"📊 {coluna}"):
+                col1_info, col2_info = st.columns(2)
+                with col1_info:
+                    st.write(f"Mínimo: {df[coluna].min():.2f}")
+                    st.write(f"Máximo: {df[coluna].max():.2f}")
+                    st.write(f"Média: {df[coluna].mean():.2f}")
+                with col2_info:
+                    st.write(f"Desvio Padrão: {df[coluna].std():.2f}")
+                    st.write(f"Valores Únicos: {df[coluna].nunique()}")
+                    st.write(f"Valores Nulos: {df[coluna].isna().sum()}")
 
 else:
     st.error("⚠️ SISTEMA NÃO INICIALIZADO")
