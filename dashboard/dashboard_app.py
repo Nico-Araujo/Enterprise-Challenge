@@ -113,4 +113,4 @@ else:
 
 # Rodapé
 st.markdown('---')
-st.markdown('**Hermes Reply - Fase 6** | Pipeline Integrado: Sensores → ML → Dashboard')
+st.markdown('**Enterprise Challenge - Hermes Reply - Fase 6** | Pipeline Integrado: Sensores → ML → Dashboard')
