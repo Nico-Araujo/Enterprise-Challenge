@@ -25,24 +25,36 @@ df = load_data()
 if not df.empty and 'estado_alerta' in df.columns:
     st.success(f"✅ Dados carregados: {len(df)} registros")
     
-   # MÉTODO 2: Usando value_counts()
-    st.subheader("Método 2: value_counts()")
+# MÉTODO 3: Criando DataFrame explícito
+    st.subheader("Método 3: DataFrame explícito")
     
-    contagens = df['estado_alerta'].value_counts()
-    st.write("**value_counts():**")
-    st.write(contagens)
+    df_pizza = pd.DataFrame({
+        'estado': ['NORMAL', 'ALERTA', 'CRITICO'],
+        'quantidade': [normal_count, alerta_count, critico_count]
+    })
+    st.write("**DataFrame para pizza:**")
+    st.dataframe(df_pizza)
     
-    # Gráfico 2: Usando value_counts diretamente
-    st.subheader("Gráfico 2: value_counts direto")
+    # Gráfico 3: Usando DataFrame
+    st.subheader("Gráfico 3: Com DataFrame")
     try:
-        fig2 = px.pie(
-            values=contagens.values,
-            names=contagens.index,
-            title='Distribuição de Alertas (value_counts)'
+        fig3 = px.pie(
+            df_pizza,
+            values='quantidade',
+            names='estado',
+            title='Distribuição de Alertas (DataFrame)'
         )
-        st.plotly_chart(fig2, use_container_width=True)
-        st.success("✅ Gráfico 2 criado com sucesso!")
+        st.plotly_chart(fig3, use_container_width=True)
+        st.success("✅ Gráfico 3 criado com sucesso!")
     except Exception as e:
-        st.error(f"❌ Erro Gráfico 2: {e}")
+        st.error(f"❌ Erro Gráfico 3: {e}")
     
-    
+    # DEBUG: Informações extras
+    st.subheader("🔍 Debug Info")
+    st.write(f"Valores únicos em estado_alerta: {df['estado_alerta'].unique()}")
+    st.write(f"Tipos de dados: {df['estado_alerta'].dtype}")
+    st.write("Amostra de dados:")
+    st.dataframe(df[['estado_alerta']].head(10))
+
+else:
+    st.error('⚠️ Dados não carregados ou coluna estado_alerta não encontrada')
