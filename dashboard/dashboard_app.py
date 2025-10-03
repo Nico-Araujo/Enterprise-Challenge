@@ -183,21 +183,83 @@ if not df.empty:
         st.subheader("Análise de Clusters")
         
         if 'cluster' in df.columns:
+            # Converter cluster para string para garantir que funcione como categoria
+            df['cluster_str'] = df['cluster'].astype(str)
+            
             col1_clust, col2_clust = st.columns(2)
             
             with col1_clust:
-                # Distribuição de clusters
-                cluster_counts = df['cluster'].value_counts().sort_index()
-                fig_cluster = px.bar(x=cluster_counts.index, y=cluster_counts.values,
-                                   title='Distribuição de Clusters',
-                                   labels={'x': 'Cluster', 'y': 'Quantidade'})
-                st.plotly_chart(fig_cluster, use_container_width=True)
+                # Distribuição de clusters - CORRIGIDO
+                cluster_counts = df['cluster_str'].value_counts().sort_index()
+                fig_cluster_bar = px.bar(
+                    x=cluster_counts.index, 
+                    y=cluster_counts.values,
+                    title='Distribuição de Clusters',
+                    labels={'x': 'Cluster', 'y': 'Quantidade de Registros'},
+                    color=cluster_counts.index,
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_cluster_bar.update_layout(showlegend=False)
+                st.plotly_chart(fig_cluster_bar, use_container_width=True)
+                
+                # Scatter plot clusters - CORRIGIDO
+                if all(col in df.columns for col in ['temperatura', 'vibracao']):
+                    fig_cluster_scatter = px.scatter(
+                        df, 
+                        x='temperatura', 
+                        y='vibracao',
+                        color='cluster_str',
+                        title='Clusters: Temperatura vs Vibração',
+                        color_discrete_sequence=px.colors.qualitative.Set3
+                    )
+                    st.plotly_chart(fig_cluster_scatter, use_container_width=True)
             
             with col2_clust:
-                # Clusters vs Temperatura
-                fig_cluster_temp = px.box(df, x='cluster', y='temperatura',
-                                        title='Temperatura por Cluster')
+                # Box plot por cluster - CORRIGIDO
+                fig_cluster_temp = px.box(
+                    df, 
+                    x='cluster_str', 
+                    y='temperatura',
+                    title='Distribuição de Temperatura por Cluster',
+                    color='cluster_str',
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_cluster_temp.update_layout(showlegend=False)
                 st.plotly_chart(fig_cluster_temp, use_container_width=True)
+                
+                # Box plot vibração por cluster
+                fig_cluster_vib = px.box(
+                    df, 
+                    x='cluster_str', 
+                    y='vibracao',
+                    title='Distribuição de Vibração por Cluster',
+                    color='cluster_str',
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_cluster_vib.update_layout(showlegend=False)
+                st.plotly_chart(fig_cluster_vib, use_container_width=True)
+            
+            # Análise dos clusters
+            st.subheader("Características dos Clusters")
+            cluster_stats = df.groupby('cluster_str').agg({
+                'temperatura': ['mean', 'std', 'min', 'max'],
+                'vibracao': ['mean', 'std'],
+                'distancia': ['mean', 'std'],
+                'estado_alerta': lambda x: (x == 'CRITICO').sum()
+            }).round(2)
+            
+            # Renomear colunas
+            cluster_stats.columns = [
+                'Temp Média', 'Temp Desvio', 'Temp Mín', 'Temp Máx',
+                'Vib Média', 'Vib Desvio', 
+                'Dist Média', 'Dist Desvio',
+                'Alertas Críticos'
+            ]
+            
+            st.dataframe(cluster_stats)
+            
+        else:
+            st.warning("Coluna 'cluster' não encontrada nos dados")
 
     # RESUMO EXECUTIVO
     st.markdown("---")
