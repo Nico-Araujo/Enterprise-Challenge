@@ -25,34 +25,24 @@ df = load_data()
 if not df.empty and 'estado_alerta' in df.columns:
     st.success(f"✅ Dados carregados: {len(df)} registros")
     
-    # MÉTODO 1: Contagem manual explícita
-    st.subheader("Método 1: Contagem Manual")
+   # MÉTODO 2: Usando value_counts()
+    st.subheader("Método 2: value_counts()")
     
-    normal_count = len(df[df['estado_alerta'] == 'NORMAL'])
-    alerta_count = len(df[df['estado_alerta'] == 'ALERTA'])
-    critico_count = len(df[df['estado_alerta'] == 'CRITICO'])
+    contagens = df['estado_alerta'].value_counts()
+    st.write("**value_counts():**")
+    st.write(contagens)
     
-    st.write(f"**Contagens manuais:**")
-    st.write(f"- NORMAL: {normal_count}")
-    st.write(f"- ALERTA: {alerta_count}") 
-    st.write(f"- CRITICO: {critico_count}")
-    st.write(f"- Total: {normal_count + alerta_count + critico_count}")
-    
-    # Criar arrays separados para valores e nomes
-    valores = [normal_count, alerta_count, critico_count]
-    nomes = ['NORMAL', 'ALERTA', 'CRITICO']
-    
-    # Gráfico 1: Usando arrays separados
-    st.subheader("Gráfico 1: Arrays separados")
+    # Gráfico 2: Usando value_counts diretamente
+    st.subheader("Gráfico 2: value_counts direto")
     try:
-        fig1 = px.pie(
-            values=valores,
-            names=nomes,
-            title='Distribuição de Alertas (Arrays)'
+        fig2 = px.pie(
+            values=contagens.values,
+            names=contagens.index,
+            title='Distribuição de Alertas (value_counts)'
         )
-        st.plotly_chart(fig1, use_container_width=True)
-        st.success("✅ Gráfico 1 criado com sucesso!")
+        st.plotly_chart(fig2, use_container_width=True)
+        st.success("✅ Gráfico 2 criado com sucesso!")
     except Exception as e:
-        st.error(f"❌ Erro Gráfico 1: {e}")
+        st.error(f"❌ Erro Gráfico 2: {e}")
     
     
