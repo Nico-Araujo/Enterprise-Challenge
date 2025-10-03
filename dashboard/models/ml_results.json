@@ -1,0 +1,13 @@
+{
+  "kpis": {
+    "Total de Leituras": 200,
+    "Sensores Ativos": 3,
+    "Alertas Cr\u00edticos": 134,
+    "Alertas de Aten\u00e7\u00e3o": 6,
+    "Taxa de Anomalias": "10.0%",
+    "Acur\u00e1cia do Classificador": "1.000"
+  },
+  "model_metrics": {
+    "classification_accuracy": 1.0
+  }
+}
