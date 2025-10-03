@@ -136,4 +136,4 @@ Para usar o dashboard:
 3. **Ou faça upload do arquivo na sidebar** ← 🆕
 4. **Recarregue esta página**  
 
-📁 **Estrutura esperada:**
+📁 **Estrutura esperada:**'''
