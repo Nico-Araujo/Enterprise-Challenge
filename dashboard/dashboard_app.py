@@ -10,20 +10,8 @@ st.set_page_config(
     layout='wide'
 )
 
-# CSS personalizado
-st.markdown('''
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-</style>
-''', unsafe_allow_html=True)
-
 # Cabeçalho
-st.markdown('<h1 class="main-header">🚀 Monitoramento Inteligente - Hermes Reply</h1>', unsafe_allow_html=True)
+st.title('🚀 Monitoramento Inteligente - Hermes Reply')
 
 # Sidebar
 st.sidebar.title('⚙️ Controles')
@@ -42,7 +30,7 @@ def load_data():
         for caminho in caminhos:
             if os.path.exists(caminho):
                 df = pd.read_csv(caminho)
-                st.success(f"✅ Arquivo encontrado em: {caminho}")
+                st.sidebar.success(f"✅ Arquivo encontrado em: {caminho}")
                 return df
         
         # Se usuário fez upload
@@ -58,50 +46,77 @@ def load_data():
 df = load_data()
 
 if not df.empty:
+    # DEBUG: Mostrar informações sobre os dados
+    st.sidebar.subheader("🔍 Debug Info")
+    st.sidebar.write(f"Colunas: {list(df.columns)}")
+    st.sidebar.write(f"Total de linhas: {len(df)}")
+    st.sidebar.write(f"Primeiras linhas:")
+    st.sidebar.dataframe(df.head(3))
+    
     st.success(f"Dados carregados: {len(df)} registros")
     
-    # KPIs
+    # KPIs - mais flexíveis
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric('Total de Leituras', len(df))
 
     with col2:
-        criticos = len(df[df.get('estado_alerta', '') == 'CRITICO']) if 'estado_alerta' in df.columns else 0
+        # Procurar coluna de alertas críticos
+        coluna_criticos = next((col for col in df.columns if 'critic' in col.lower() or 'alerta' in col.lower()), None)
+        criticos = len(df[df[coluna_criticos] == 'CRITICO']) if coluna_criticos else 0
         st.metric('Alertas Críticos', criticos)
 
     with col3:
-        atencao = len(df[df.get('estado_alerta', '') == 'ALERTA']) if 'estado_alerta' in df.columns else 0
+        atencao = len(df[df[coluna_criticos] == 'ALERTA']) if coluna_criticos else 0
         st.metric('Alertas de Atenção', atencao)
 
     with col4:
-        anomalias = (df['anomalia'] == -1).sum() if 'anomalia' in df.columns else 0
+        # Procurar coluna de anomalias
+        coluna_anomalias = next((col for col in df.columns if 'anomal' in col.lower()), 'anomalia')
+        anomalias = (df[coluna_anomalias] == -1).sum() if coluna_anomalias in df.columns else 0
         st.metric('Anomalias', anomalias)
 
-    # Gráficos
-    tab1, tab2, tab3 = st.tabs(['📈 Série Temporal', '🔍 Análise', '🚨 Alertas'])
+    # Gráficos - mais flexíveis
+    tab1, tab2, tab3, tab4 = st.tabs(['📈 Série Temporal', '🔍 Análise', '🚨 Alertas', '📊 Debug'])
 
     with tab1:
-        if 'temperatura' in df.columns and 'data_hora_ms' in df.columns:
-            fig_temp = px.line(df, x='data_hora_ms', y='temperatura', title='Temperatura ao Longo do Tempo')
+        # Encontrar colunas de temperatura e timestamp
+        coluna_temp = next((col for col in df.columns if 'temp' in col.lower()), None)
+        coluna_time = next((col for col in df.columns if 'time' in col.lower() or 'data' in col.lower() or 'hora' in col.lower()), None)
+        
+        if coluna_temp and coluna_time:
+            fig_temp = px.line(df, x=coluna_time, y=coluna_temp, title=f'{coluna_temp} ao Longo do Tempo')
             st.plotly_chart(fig_temp, use_container_width=True)
         else:
-            st.warning('Dados de temperatura ou timestamp não disponíveis')
+            st.warning(f'Colunas de temperatura ou timestamp não encontradas. Colunas disponíveis: {list(df.columns)}')
 
     with tab2:
-        if all(col in df.columns for col in ['temperatura', 'vibracao']):
-            fig_scatter = px.scatter(df, x='temperatura', y='vibracao', title='Relação Temperatura vs Vibração')
+        # Encontrar coluna de vibração
+        coluna_vib = next((col for col in df.columns if 'vibra' in col.lower() or 'acel' in col.lower()), None)
+        
+        if coluna_temp and coluna_vib:
+            fig_scatter = px.scatter(df, x=coluna_temp, y=coluna_vib, 
+                                   title=f'Relação {coluna_temp} vs {coluna_vib}')
             st.plotly_chart(fig_scatter, use_container_width=True)
         else:
-            st.warning('Dados de temperatura ou vibração não disponíveis')
+            st.warning(f'Colunas para scatter plot não encontradas. Colunas numéricas: {df.select_dtypes(include=["number"]).columns.tolist()}')
 
     with tab3:
-        if 'estado_alerta' in df.columns:
-            alert_counts = df['estado_alerta'].value_counts()
+        if coluna_criticos:
+            alert_counts = df[coluna_criticos].value_counts()
             fig_alerts = px.pie(values=alert_counts.values, names=alert_counts.index, title='Distribuição de Alertas')
             st.plotly_chart(fig_alerts, use_container_width=True)
         else:
-            st.warning('Dados de alerta não disponíveis')
+            st.warning('Coluna de alertas não encontrada')
+
+    with tab4:
+        st.subheader("Dados Completos")
+        st.dataframe(df)
+        st.subheader("Estatísticas")
+        st.write(df.describe())
+        st.subheader("Tipos de Dados")
+        st.write(df.dtypes)
 
 else:
     st.error("⚠️ SISTEMA NÃO INICIALIZADO")
@@ -113,4 +128,4 @@ else:
 
 # Rodapé
 st.markdown('---')
-st.markdown('**Enterprise Challenge - Hermes Reply - Fase 6** | Pipeline Integrado: Sensores → ML → Dashboard')
+st.markdown('**Hermes Reply - Fase 6** | Pipeline Integrado: Sensores → ML → Dashboard')
