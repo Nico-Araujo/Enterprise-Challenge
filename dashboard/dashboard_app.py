@@ -12,26 +12,7 @@ st.set_page_config(
     layout='wide'
 )
 
-# CSS personalizado
-st.markdown('''
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #1f77b4;
-    }
-</style>
-''', unsafe_allow_html=True)
-
-# Cabeçalho
-st.markdown('<h1 class="main-header">🚀 Monitoramento Inteligente - Hermes Reply</h1>', unsafe_allow_html=True)
+st.title('🚀 Monitoramento Inteligente - Hermes Reply')
 
 # Sidebar
 st.sidebar.title('⚙️ Controles')
@@ -49,7 +30,6 @@ def load_data():
         for caminho in caminhos:
             if os.path.exists(caminho):
                 df = pd.read_csv(caminho)
-                # Converter timestamp para datetime
                 if 'timestamp' in df.columns:
                     df['timestamp'] = pd.to_datetime(df['timestamp'])
                 return df
@@ -69,287 +49,152 @@ def load_data():
 df = load_data()
 
 if not df.empty:
-    st.success(f"✅ Dados carregados com sucesso! {len(df)} registros encontrados.")
+    st.success(f"✅ Dados carregados: {len(df)} registros")
     
-    # KPIs PRINCIPAIS
+    # DEBUG: Mostrar informações dos dados problemáticos
+    st.sidebar.subheader("🔍 Debug Info")
+    
+    # Informações sobre estado_alerta
+    if 'estado_alerta' in df.columns:
+        alert_counts = df['estado_alerta'].value_counts()
+        st.sidebar.write("**Contagem de Alertas:**")
+        for estado, count in alert_counts.items():
+            st.sidebar.write(f"- {estado}: {count}")
+        
+        # Verificar valores únicos
+        st.sidebar.write(f"Valores únicos em estado_alerta: {df['estado_alerta'].unique()}")
+    
+    # Informações sobre clusters
+    if 'cluster' in df.columns:
+        st.sidebar.write(f"Valores únicos em cluster: {df['cluster'].unique()}")
+        st.sidebar.write(f"Contagem de clusters: {df['cluster'].value_counts().to_dict()}")
+
+    # KPIs
     col1, col2, col3, col4 = st.columns(4)
-
     with col1:
-        total_leituras = len(df)
-        st.metric('Total de Leituras', f'{total_leituras:,}')
-
+        st.metric('Total de Leituras', len(df))
     with col2:
-        criticos = len(df[df['estado_alerta'] == 'CRITICO'])
-        st.metric('Alertas Críticos', criticos, delta=f"{criticos/total_leituras*100:.1f}%")
-
+        criticos = len(df[df['estado_alerta'] == 'CRITICO']) if 'estado_alerta' in df.columns else 0
+        st.metric('Alertas Críticos', criticos)
     with col3:
-        alertas = len(df[df['estado_alerta'] == 'ALERTA'])
-        st.metric('Alertas de Atenção', alertas, delta=f"{alertas/total_leituras*100:.1f}%")
-
+        alertas = len(df[df['estado_alerta'] == 'ALERTA']) if 'estado_alerta' in df.columns else 0
+        st.metric('Alertas de Atenção', alertas)
     with col4:
-        anomalias = len(df[df['anomalia'] == -1])
-        st.metric('Anomalias Detectadas', anomalias, delta=f"{anomalias/total_leituras*100:.1f}%")
+        anomalias = len(df[df['anomalia'] == -1]) if 'anomalia' in df.columns else 0
+        st.metric('Anomalias', anomalias)
 
-    # GRÁFICOS PRINCIPAIS
-    tab1, tab2, tab3, tab4 = st.tabs(['📈 Monitoramento Tempo Real', '🔍 Análise de Sensores', '🚨 Alertas & Anomalias', '📊 Clusters'])
+    # GRÁFICOS COM DEBUG
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(['📈 Tempo Real', '🔍 Sensores', '🚨 Alertas', '📊 Clusters', '🐛 Debug'])
 
     with tab1:
-        st.subheader("Monitoramento em Tempo Real dos Sensores")
+        st.subheader("Monitoramento em Tempo Real")
         
-        # Gráfico de temperatura
         if 'timestamp' in df.columns and 'temperatura' in df.columns:
-            fig_temp = px.line(df, x='timestamp', y='temperatura', 
-                             title='Temperatura ao Longo do Tempo',
-                             color_discrete_sequence=['#FF6B6B'])
-            fig_temp.add_hline(y=80, line_dash="dash", line_color="red", annotation_text="Limite Crítico")
-            fig_temp.update_layout(height=400)
+            fig_temp = px.line(df, x='timestamp', y='temperatura', title='Temperatura')
             st.plotly_chart(fig_temp, use_container_width=True)
-        
-        # Gráficos de vibração e distância
-        col1_sens, col2_sens = st.columns(2)
-        
-        with col1_sens:
-            if 'timestamp' in df.columns and 'vibracao' in df.columns:
-                fig_vib = px.line(df, x='timestamp', y='vibracao', 
-                                title='Vibração ao Longo do Tempo',
-                                color_discrete_sequence=['#4ECDC4'])
-                fig_vib.update_layout(height=300)
-                st.plotly_chart(fig_vib, use_container_width=True)
-        
-        with col2_sens:
-            if 'timestamp' in df.columns and 'distancia' in df.columns:
-                fig_dist = px.line(df, x='timestamp', y='distancia', 
-                                 title='Distância ao Longo do Tempo',
-                                 color_discrete_sequence=['#45B7D1'])
-                fig_dist.update_layout(height=300)
-                st.plotly_chart(fig_dist, use_container_width=True)
 
     with tab2:
-        st.subheader("Análise de Correlação entre Sensores")
+        st.subheader("Análise de Sensores")
         
-        col1_anal, col2_anal = st.columns(2)
-        
-        with col1_anal:
-            # Temperatura vs Vibração - CORRIGIDO
-            if all(col in df.columns for col in ['temperatura', 'vibracao', 'estado_alerta']):
-                # Verificar se há dados válidos
-                temp_validos = df['temperatura'].notna() & df['vibracao'].notna()
-                df_valid = df[temp_validos]
+        # GRÁFICO 1: Temperatura vs Vibração - VERSÃO SIMPLIFICADA
+        if all(col in df.columns for col in ['temperatura', 'vibracao', 'estado_alerta']):
+            st.write("**Dados para scatter plot:**")
+            st.write(f"- Temperatura: {df['temperatura'].notna().sum()} valores válidos")
+            st.write(f"- Vibração: {df['vibracao'].notna().sum()} valores válidos")
+            st.write(f"- Estados de alerta: {df['estado_alerta'].notna().sum()} valores válidos")
+            
+            # Criar uma versão simplificada do scatter plot
+            try:
+                fig = px.scatter(
+                    df,
+                    x='temperatura',
+                    y='vibracao', 
+                    color='estado_alerta',
+                    title='Temperatura vs Vibração'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Erro no scatter plot: {e}")
                 
-                if len(df_valid) > 0:
-                    fig_scatter = px.scatter(
-                        df_valid, 
-                        x='temperatura', 
-                        y='vibracao',
-                        color='estado_alerta',
-                        title='Temperatura vs Vibração (Colorido por Alerta)',
-                        color_discrete_map={
-                            'NORMAL': 'green', 
-                            'ALERTA': 'orange', 
-                            'CRITICO': 'red'
-                        }
-                    )
-                    st.plotly_chart(fig_scatter, use_container_width=True)
-                else:
-                    st.warning("Dados insuficientes para o gráfico de dispersão")
-        
-        with col2_anal:
-            # Médias móveis
-            if all(col in df.columns for col in ['timestamp', 'temperatura_media_movel']):
-                fig_media = px.line(df, x='timestamp', y=['temperatura', 'temperatura_media_movel'],
-                                  title='Temperatura vs Média Móvel',
-                                  color_discrete_sequence=['#FF6B6B', '#1f77b4'])
-                fig_media.update_layout(height=400)
-                st.plotly_chart(fig_media, use_container_width=True)
+                # Tentar versão alternativa sem cores
+                try:
+                    fig = px.scatter(df, x='temperatura', y='vibracao', title='Temperatura vs Vibração (sem cores)')
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e2:
+                    st.error(f"Erro mesmo sem cores: {e2}")
 
     with tab3:
-        st.subheader("Dashboard de Alertas e Anomalias")
+        st.subheader("Alertas e Anomalias")
         
-        col1_alert, col2_alert = st.columns(2)
-        
-        with col1_alert:
-            # Distribuição de alertas - CORRIGIDO
-            if 'estado_alerta' in df.columns:
-                # Contagem manual para garantir precisão
-                alert_counts = {
-                    'NORMAL': len(df[df['estado_alerta'] == 'NORMAL']),
-                    'ALERTA': len(df[df['estado_alerta'] == 'ALERTA']),
-                    'CRITICO': len(df[df['estado_alerta'] == 'CRITICO'])
-                }
-                
-                # Criar DataFrame para o gráfico
-                alert_df = pd.DataFrame({
-                    'estado': list(alert_counts.keys()),
-                    'quantidade': list(alert_counts.values())
-                })
-                
-                # Filtrar apenas estados com quantidade > 0
-                alert_df = alert_df[alert_df['quantidade'] > 0]
-                
-                if len(alert_df) > 0:
-                    fig_alerts = px.pie(
-                        alert_df, 
-                        values='quantidade', 
-                        names='estado',
-                        title='Distribuição de Estados de Alerta',
-                        color='estado',
-                        color_discrete_map={
-                            'NORMAL': 'green', 
-                            'ALERTA': 'orange', 
-                            'CRITICO': 'red'
-                        }
+        # GRÁFICO 2: Pizza de alertas - VERSÃO SIMPLIFICADA
+        if 'estado_alerta' in df.columns:
+            st.write("**Dados para gráfico de pizza:**")
+            
+            # Método 1: Usando value_counts diretamente
+            alert_counts = df['estado_alerta'].value_counts()
+            st.write("Contagem por value_counts:", alert_counts.to_dict())
+            
+            # Método 2: Contagem manual
+            normal_count = len(df[df['estado_alerta'] == 'NORMAL'])
+            alerta_count = len(df[df['estado_alerta'] == 'ALERTA']) 
+            critico_count = len(df[df['estado_alerta'] == 'CRITICO'])
+            st.write(f"Contagem manual - NORMAL: {normal_count}, ALERTA: {alerta_count}, CRITICO: {critico_count}")
+            
+            # Tentar criar o gráfico de pizza
+            if len(alert_counts) > 0:
+                try:
+                    fig = px.pie(
+                        values=alert_counts.values,
+                        names=alert_counts.index,
+                        title='Distribuição de Alertas'
                     )
-                    st.plotly_chart(fig_alerts, use_container_width=True)
-                else:
-                    st.warning("Nenhum dado de alerta disponível")
-        
-        with col2_alert:
-            # Scores de anomalia
-            if 'anomalia_score' in df.columns and 'timestamp' in df.columns:
-                fig_anom = px.scatter(df, x='timestamp', y='anomalia_score',
-                                    color='status_anomalia',
-                                    title='Scores de Anomalia ao Longo do Tempo',
-                                    color_discrete_map={'Normal': 'blue', 'Anomalia': 'red'})
-                st.plotly_chart(fig_anom, use_container_width=True)
-        
-        # Tabela de alertas críticos
-        st.subheader("Registros com Alertas Críticos")
-        criticos_df = df[df['estado_alerta'] == 'CRITICO']
-        if not criticos_df.empty:
-            st.dataframe(criticos_df[['timestamp', 'temperatura', 'vibracao', 'distancia', 'anomalia_score']].sort_values('temperatura', ascending=False))
-        else:
-            st.info("✅ Nenhum alerta crítico detectado")
+                    st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Erro no gráfico de pizza: {e}")
 
     with tab4:
         st.subheader("Análise de Clusters")
         
         if 'cluster' in df.columns:
-            # Converter cluster para string para garantir que funcione como categoria
-            df['cluster_str'] = df['cluster'].astype(str)
+            st.write("**Dados para gráficos de cluster:**")
+            st.write(f"Clusters únicos: {df['cluster'].unique()}")
+            st.write(f"Contagem: {df['cluster'].value_counts().to_dict()}")
             
-            col1_clust, col2_clust = st.columns(2)
+            # GRÁFICO 3: Distribuição de clusters - VERSÃO SIMPLIFICADA
+            cluster_counts = df['cluster'].value_counts().sort_index()
             
-            with col1_clust:
-                # Distribuição de clusters - CORRIGIDO
-                cluster_counts = df['cluster_str'].value_counts().sort_index()
-                
-                # Criar DataFrame para garantir que o gráfico funcione
-                cluster_df = pd.DataFrame({
-                    'cluster': cluster_counts.index,
-                    'quantidade': cluster_counts.values
-                })
-                
-                fig_cluster_bar = px.bar(
-                    cluster_df,
-                    x='cluster', 
-                    y='quantidade',
+            # Método 1: Gráfico de barras simples
+            try:
+                fig = px.bar(
+                    x=cluster_counts.index.astype(str),
+                    y=cluster_counts.values,
                     title='Distribuição de Clusters',
-                    labels={'quantidade': 'Quantidade de Registros'},
-                    color='cluster',
-                    color_discrete_sequence=px.colors.qualitative.Set3
+                    labels={'x': 'Cluster', 'y': 'Quantidade'}
                 )
-                fig_cluster_bar.update_layout(showlegend=False)
-                st.plotly_chart(fig_cluster_bar, use_container_width=True)
-                
-                # Scatter plot clusters
-                if all(col in df.columns for col in ['temperatura', 'vibracao']):
-                    # Filtrar dados válidos
-                    cluster_valid = df[df['temperatura'].notna() & df['vibracao'].notna()]
-                    
-                    if len(cluster_valid) > 0:
-                        fig_cluster_scatter = px.scatter(
-                            cluster_valid, 
-                            x='temperatura', 
-                            y='vibracao',
-                            color='cluster_str',
-                            title='Clusters: Temperatura vs Vibração',
-                            color_discrete_sequence=px.colors.qualitative.Set3
-                        )
-                        st.plotly_chart(fig_cluster_scatter, use_container_width=True)
-                    else:
-                        st.warning("Dados insuficientes para scatter plot de clusters")
-            
-            with col2_clust:
-                # Box plot por cluster
-                fig_cluster_temp = px.box(
-                    df, 
-                    x='cluster_str', 
-                    y='temperatura',
-                    title='Distribuição de Temperatura por Cluster',
-                    color='cluster_str',
-                    color_discrete_sequence=px.colors.qualitative.Set3
-                )
-                fig_cluster_temp.update_layout(showlegend=False)
-                st.plotly_chart(fig_cluster_temp, use_container_width=True)
-                
-                # Box plot vibração por cluster
-                fig_cluster_vib = px.box(
-                    df, 
-                    x='cluster_str', 
-                    y='vibracao',
-                    title='Distribuição de Vibração por Cluster',
-                    color='cluster_str',
-                    color_discrete_sequence=px.colors.qualitative.Set3
-                )
-                fig_cluster_vib.update_layout(showlegend=False)
-                st.plotly_chart(fig_cluster_vib, use_container_width=True)
-            
-            # Análise dos clusters
-            st.subheader("Características dos Clusters")
-            cluster_stats = df.groupby('cluster_str').agg({
-                'temperatura': ['mean', 'std', 'min', 'max'],
-                'vibracao': ['mean', 'std'],
-                'distancia': ['mean', 'std'],
-                'estado_alerta': lambda x: (x == 'CRITICO').sum()
-            }).round(2)
-            
-            # Renomear colunas
-            cluster_stats.columns = [
-                'Temp Média', 'Temp Desvio', 'Temp Mín', 'Temp Máx',
-                'Vib Média', 'Vib Desvio', 
-                'Dist Média', 'Dist Desvio',
-                'Alertas Críticos'
-            ]
-            
-            st.dataframe(cluster_stats)
-            
-        else:
-            st.warning("Coluna 'cluster' não encontrada nos dados")
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as e:
+                st.error(f"Erro no gráfico de barras: {e}")
 
-    # RESUMO EXECUTIVO
-    st.markdown("---")
-    st.subheader("📋 Resumo Executivo")
-    
-    col_res1, col_res2, col_res3 = st.columns(3)
-    
-    with col_res1:
-        st.write("**🔴 Situação Crítica:**")
-        st.write(f"- {criticos} registros em estado CRÍTICO")
-        st.write(f"- Temperatura máxima: {df['temperatura'].max():.1f}°C")
-    
-    with col_res2:
-        st.write("**🟠 Alertas:**")
-        st.write(f"- {alertas} registros requerem atenção")
-        st.write(f"- {anomalias} anomalias detectadas")
-    
-    with col_res3:
-        st.write("**📊 Estatísticas:**")
-        st.write(f"- Temperatura média: {df['temperatura'].mean():.1f}°C")
-        st.write(f"- Vibração média: {df['vibracao'].mean():.2f}")
-        st.write(f"- Período: {df['timestamp'].min().strftime('%d/%m %H:%M')} a {df['timestamp'].max().strftime('%d/%m %H:%M')}")
+    with tab5:
+        st.subheader("Debug Completo")
+        
+        st.write("**DataFrame completo:**")
+        st.dataframe(df)
+        
+        st.write("**Info do DataFrame:**")
+        st.write(f"Colunas: {list(df.columns)}")
+        st.write(f"Tipos de dados: {df.dtypes.to_dict()}")
+        
+        if 'estado_alerta' in df.columns:
+            st.write("**Amostra de estado_alerta:**")
+            st.write(df[['timestamp', 'temperatura', 'estado_alerta']].head(10))
+        
+        if 'cluster' in df.columns:
+            st.write("**Amostra de cluster:**")
+            st.write(df[['timestamp', 'temperatura', 'cluster']].head(10))
 
 else:
-    st.error('''
-    ⚠️ **Sistema não inicializado**
+    st.error('⚠️ Sistema não inicializado')
 
-    Para usar o dashboard:
-
-    1. **Execute o pipeline de Machine Learning**  
-    2. **Certifique-se que 'dados_finais_ml.csv' existe na pasta raiz**  
-    3. **Ou faça upload do arquivo na sidebar**  
-    4. **Recarregue esta página**  
-    ''')
-
-# Rodapé
 st.markdown('---')
-st.markdown('**Hermes Reply - Fase 4** | Pipeline Integrado: Sensores → ML → Dashboard')
+st.markdown('**Hermes Reply - Fase 4**')
