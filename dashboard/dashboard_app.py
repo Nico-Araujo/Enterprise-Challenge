@@ -46,77 +46,96 @@ def load_data():
 df = load_data()
 
 if not df.empty:
-    # DEBUG: Mostrar informações sobre os dados
+    # DEBUG: Mostrar informações detalhadas
     st.sidebar.subheader("🔍 Debug Info")
     st.sidebar.write(f"Colunas: {list(df.columns)}")
     st.sidebar.write(f"Total de linhas: {len(df)}")
-    st.sidebar.write(f"Primeiras linhas:")
-    st.sidebar.dataframe(df.head(3))
+    st.sidebar.write(f"Tipos de dados:")
+    st.sidebar.write(df.dtypes)
     
     st.success(f"Dados carregados: {len(df)} registros")
     
-    # KPIs - mais flexíveis
+    # KPIs
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric('Total de Leituras', len(df))
 
     with col2:
-        # Procurar coluna de alertas críticos
-        coluna_criticos = next((col for col in df.columns if 'critic' in col.lower() or 'alerta' in col.lower()), None)
-        criticos = len(df[df[coluna_criticos] == 'CRITICO']) if coluna_criticos else 0
-        st.metric('Alertas Críticos', criticos)
+        st.metric('Colunas Disponíveis', len(df.columns))
 
     with col3:
-        atencao = len(df[df[coluna_criticos] == 'ALERTA']) if coluna_criticos else 0
-        st.metric('Alertas de Atenção', atencao)
+        colunas_numericas = df.select_dtypes(include=['number']).columns.tolist()
+        st.metric('Colunas Numéricas', len(colunas_numericas))
 
     with col4:
-        # Procurar coluna de anomalias
-        coluna_anomalias = next((col for col in df.columns if 'anomal' in col.lower()), 'anomalia')
-        anomalias = (df[coluna_anomalias] == -1).sum() if coluna_anomalias in df.columns else 0
-        st.metric('Anomalias', anomalias)
+        colunas_texto = df.select_dtypes(include=['object']).columns.tolist()
+        st.metric('Colunas Texto', len(colunas_texto))
 
-    # Gráficos - mais flexíveis
-    tab1, tab2, tab3, tab4 = st.tabs(['📈 Série Temporal', '🔍 Análise', '🚨 Alertas', '📊 Debug'])
+    # Gráficos - DEBUG DETALHADO
+    tab1, tab2, tab3 = st.tabs(['📈 Debug Gráficos', '📊 Dados Completos', '🔍 Análise'])
 
     with tab1:
-        # Encontrar colunas de temperatura e timestamp
-        coluna_temp = next((col for col in df.columns if 'temp' in col.lower()), None)
-        coluna_time = next((col for col in df.columns if 'time' in col.lower() or 'data' in col.lower() or 'hora' in col.lower()), None)
+        st.subheader("Teste de Gráficos")
         
-        if coluna_temp and coluna_time:
-            fig_temp = px.line(df, x=coluna_time, y=coluna_temp, title=f'{coluna_temp} ao Longo do Tempo')
-            st.plotly_chart(fig_temp, use_container_width=True)
+        # Teste 1: Gráfico simples com primeiras colunas numéricas
+        colunas_numericas = df.select_dtypes(include=['number']).columns.tolist()
+        st.write(f"Colunas numéricas disponíveis: {colunas_numericas}")
+        
+        if len(colunas_numericas) >= 2:
+            col_x = colunas_numericas[0]
+            col_y = colunas_numericas[1]
+            
+            st.write(f"Tentando plotar: {col_x} vs {col_y}")
+            st.write(f"Valores únicos em {col_x}: {df[col_x].nunique()}")
+            st.write(f"Valores únicos em {col_y}: {df[col_y].nunique()}")
+            
+            # Verificar se há dados válidos
+            if df[col_x].notna().any() and df[col_y].notna().any():
+                try:
+                    fig_test = px.scatter(df, x=col_x, y=col_y, title=f'Teste: {col_x} vs {col_y}')
+                    st.plotly_chart(fig_test, use_container_width=True)
+                    st.success("✅ Gráfico de teste plotado com sucesso!")
+                except Exception as e:
+                    st.error(f"❌ Erro ao plotar gráfico: {e}")
+            else:
+                st.warning("⚠️ Dados contêm valores NaN")
+                
         else:
-            st.warning(f'Colunas de temperatura ou timestamp não encontradas. Colunas disponíveis: {list(df.columns)}')
+            st.error("❌ Não há colunas numéricas suficientes para plotar")
+
+        # Teste 2: Histograma simples
+        if colunas_numericas:
+            col_hist = colunas_numericas[0]
+            st.write(f"Histograma de {col_hist}")
+            fig_hist = px.histogram(df, x=col_hist, title=f'Distribuição de {col_hist}')
+            st.plotly_chart(fig_hist, use_container_width=True)
 
     with tab2:
-        # Encontrar coluna de vibração
-        coluna_vib = next((col for col in df.columns if 'vibra' in col.lower() or 'acel' in col.lower()), None)
-        
-        if coluna_temp and coluna_vib:
-            fig_scatter = px.scatter(df, x=coluna_temp, y=coluna_vib, 
-                                   title=f'Relação {coluna_temp} vs {coluna_vib}')
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        else:
-            st.warning(f'Colunas para scatter plot não encontradas. Colunas numéricas: {df.select_dtypes(include=["number"]).columns.tolist()}')
-
-    with tab3:
-        if coluna_criticos:
-            alert_counts = df[coluna_criticos].value_counts()
-            fig_alerts = px.pie(values=alert_counts.values, names=alert_counts.index, title='Distribuição de Alertas')
-            st.plotly_chart(fig_alerts, use_container_width=True)
-        else:
-            st.warning('Coluna de alertas não encontrada')
-
-    with tab4:
         st.subheader("Dados Completos")
         st.dataframe(df)
-        st.subheader("Estatísticas")
+        
+        st.subheader("Estatísticas Descritivas")
         st.write(df.describe())
-        st.subheader("Tipos de Dados")
+        
+        st.subheader("Info do DataFrame")
+        st.write(f"Shape: {df.shape}")
+        st.write(f"Colunas: {list(df.columns)}")
+        st.write("Tipos de dados:")
         st.write(df.dtypes)
+
+    with tab3:
+        st.subheader("Análise de Valores")
+        
+        # Mostrar valores únicos para cada coluna
+        for coluna in df.columns:
+            with st.expander(f"Coluna: {coluna} ({df[coluna].dtype})"):
+                st.write(f"Valores únicos: {df[coluna].nunique()}")
+                st.write(f"Valores nulos: {df[coluna].isna().sum()}")
+                if df[coluna].nunique() <= 20:  # Mostrar valores se não forem muitos
+                    st.write(f"Valores: {df[coluna].unique()}")
+                else:
+                    st.write(f"Primeiros valores: {df[coluna].head(10).tolist()}")
 
 else:
     st.error("⚠️ SISTEMA NÃO INICIALIZADO")
@@ -128,4 +147,4 @@ else:
 
 # Rodapé
 st.markdown('---')
-st.markdown('**Hermes Reply - Fase 6** | Pipeline Integrado: Sensores → ML → Dashboard')
+st.markdown('**Hermes Reply - Fase 4** | Pipeline Integrado: Sensores → ML → Dashboard')
