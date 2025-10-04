@@ -67,7 +67,7 @@ Modelo de Machine Learning.
 - Enterprise_Challenge_Ml.ipynb - Notebook com análise e modelo de ML
 
 ### Vídeo de Demonstração
-🔗 Clique [AQUI](youtube.com) para ser redirecionado ao vídeo no YouTube.
+🔗 Clique [AQUI](https://youtu.be/JH2oAgfLg8c) para ser redirecionado ao vídeo no YouTube.
 
 ## 🤖 Sistema de Machine Learning
 ### Metodologia:
