@@ -40,7 +40,7 @@ Sistema completo de monitoramento industrial 4.0 que integra sensores IoT, machi
 
 ### 📂 Arquivos Disponíveis no Repositório
 🎯 <b>dashboard:<b>
-- Interface principal para visualização e monitoramento dos dados.
+Interface principal para visualização e monitoramento dos dados.
 - Enterprise_Challenge_Dashboard.ipynb - Notebook com análise do dashboard principal
 - dados_finais_ml.csv - Dataset processado para machine learning
 - dashboard_app.py - Aplicação Streamlit do dashboard
@@ -53,7 +53,7 @@ Documentação e arquitetura do sistema.
 - diagrama-arquitetura.png - Diagrama da arquitetura do sistema
 
 🔄 <b>ingest:<b>
-- Sistema de ingestão e simulação de dados dos sensores.
+Sistema de ingestão e simulação de dados dos sensores.
 - Teste-1-Normal.png - Exemplo de leitura em estado normal
 - Teste-2-Alerta.png - Exemplo de leitura em estado de alerta
 - Teste-3-Critico.png - Exemplo de leitura em estado crítico
