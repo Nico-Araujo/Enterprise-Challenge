@@ -17,6 +17,9 @@ Sistema completo de monitoramento industrial 4.0 que integra sensores IoT, machi
 - ✅ Visualização em Tempo Real: Dashboard interativo para monitoramento contínuo
 - ✅ Gestão de Manutenção: Integração com ordens de serviço baseadas em alertas
 
+## Vídeo de Demonstração
+🔗 Clique [AQUI](https://youtu.be/JH2oAgfLg8c) para ser redirecionado ao vídeo no YouTube.
+
 ## 🏗️ Arquitetura do Sistema
 - Sensores ESP32 → Coleta de Dados → Banco de Dados → Machine Learning → Dashboard → Alertas
 ![Diagrama](https://github.com/Nico-Araujo/Enterprise-Challenge/blob/8d06a1b6b9500af5a270a10227e72ede94f29c51/docs/diagrama-arquitetura.png)
@@ -65,9 +68,6 @@ Sistema de ingestão e simulação de dados dos sensores.
 🤖 <b>ml:<b>
 Modelo de Machine Learning.
 - Enterprise_Challenge_Ml.ipynb - Notebook com análise e modelo de ML
-
-## Vídeo de Demonstração
-🔗 Clique [AQUI](https://youtu.be/JH2oAgfLg8c) para ser redirecionado ao vídeo no YouTube.
 
 ## 🤖 Sistema de Machine Learning
 ### Metodologia:
