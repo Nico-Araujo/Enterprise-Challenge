@@ -19,6 +19,7 @@ Sistema completo de monitoramento industrial 4.0 que integra sensores IoT, machi
 
 ## 🏗️ Arquitetura do Sistema
 - Sensores ESP32 → Coleta de Dados → Banco de Dados → Machine Learning → Dashboard → Alertas
+![Diagrama](diagrama-arquitetura.png)
 
 ### 📌 Principais Entidades
 
