@@ -101,7 +101,7 @@ def display_kpis(df):
 
 def display_main_charts(df):
     """Exibe os gráficos principais em abas."""
-    tab1, tab2, tab3, tab4 = st.tabs(['📈 Monitoramento Tempo Real', '🔍 Análise de Sensores', '🚨 Alertas & Anomalias', '📊 Clusters'])
+    tab1, tab2, tab3 = st.tabs(['📈 Monitoramento Tempo Real', '🔍 Análise de Sensores', '🚨 Alertas & Anomalias'])
 
     with tab1:
         st.subheader("Monitoramento em Tempo Real dos Sensores")
@@ -122,13 +122,25 @@ def display_main_charts(df):
 
     with tab2:
         st.subheader("Análise de Correlação entre Sensores")
-        if all(col in df.columns for col in ['temperatura', 'vibracao', 'estado_alerta']):
-            fig_scatter = px.scatter(df, x='temperatura', y='vibracao', color='estado_alerta',
-                                     title='Temperatura vs Vibração (Colorido por Alerta)',
-                                     color_discrete_map=ALERT_COLORS)
-            st.plotly_chart(fig_scatter, use_container_width=True)
+        
+        # CORREÇÃO: Lógica aprimorada para verificar colunas ausentes e dados vazios
+        required_cols = ['temperatura', 'vibracao', 'estado_alerta']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+
+        if not missing_cols:
+            # Remove linhas com valores nulos nas colunas essenciais
+            plot_df = df.dropna(subset=required_cols)
+            
+            if not plot_df.empty:
+                fig_scatter = px.scatter(plot_df, x='temperatura', y='vibracao', color='estado_alerta',
+                                         title='Temperatura vs Vibração (Colorido por Alerta)',
+                                         color_discrete_map=ALERT_COLORS)
+                st.plotly_chart(fig_scatter, use_container_width=True)
+            else:
+                st.warning("As colunas para o gráfico 'Temperatura vs Vibração' existem, mas não há dados válidos para exibir.")
         else:
-            st.info("Colunas 'temperatura', 'vibracao' e 'estado_alerta' são necessárias para este gráfico.")
+            # Informa exatamente quais colunas estão faltando
+            st.warning(f"⚠️ O gráfico 'Temperatura vs Vibração' não pode ser exibido. Colunas ausentes: **{', '.join(missing_cols)}**.")
             
     with tab3:
         st.subheader("Dashboard de Alertas e Anomalias")
@@ -155,22 +167,6 @@ def display_main_charts(df):
             st.dataframe(criticos_df[['timestamp', 'temperatura', 'vibracao', 'distancia', 'anomalia_score']].sort_values('temperatura', ascending=False))
         else:
             st.info("✅ Nenhum alerta crítico detectado.")
-
-    with tab4:
-        st.subheader("Análise de Clusters")
-        # MELHORIA: Verifica se a coluna 'cluster' existe e informa o usuário caso não exista.
-        if 'cluster' in df.columns:
-            col1_clust, col2_clust = st.columns(2)
-            with col1_clust:
-                fig_cluster = px.bar(df['cluster'].value_counts().sort_index(), 
-                                     title='Distribuição de Registros por Cluster',
-                                     labels={'index': 'Cluster', 'value': 'Quantidade'})
-                st.plotly_chart(fig_cluster, use_container_width=True)
-            with col2_clust:
-                fig_cluster_temp = px.box(df, x='cluster', y='temperatura', title='Distribuição da Temperatura por Cluster')
-                st.plotly_chart(fig_cluster_temp, use_container_width=True)
-        else:
-            st.warning("⚠️ A coluna 'cluster' não foi encontrada nos dados. A análise de clusters não pode ser exibida.")
 
 def display_summary(df):
     """Exibe um resumo executivo com as principais métricas."""
@@ -237,3 +233,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
