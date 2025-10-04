@@ -208,7 +208,7 @@ def main():
 
     # Rodapé
     st.markdown('---')
-    st.markdown('**Hermes Reply - Fase 4** | Pipeline Integrado: Sensores → ML → Dashboard')
+    st.markdown('**Enterprise Challenge - Hermes Reply - Fase 6** | Pipeline Integrado: Sensores → ML → Dashboard')
 
 
 if __name__ == "__main__":
