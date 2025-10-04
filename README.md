@@ -32,7 +32,6 @@ Sistema completo de monitoramento industrial 4.0 que integra sensores IoT, machi
 | **Dashboard** | `Streamlit` + `Plotly` | **Visualização em tempo real** e gestão |
 
 ### 🔗 Hierarquia e Relacionamentos
-- Cada **Ativo** pertence a um **Tipo de Ativo**  
 - Cada **Sensor** está ligado a um **Ativo** e a um **Modelo de Sensor**  
 - Cada **Leitura** está associada a um **Sensor**  
 - **Alertas** são gerados por leituras fora do padrão em ativos  
