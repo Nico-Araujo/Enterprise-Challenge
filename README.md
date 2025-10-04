@@ -1,4 +1,4 @@
-# 🏭 Hermes Reply Challenge - Sistema de Monitoramento Industrial
+# 🏭 Hermes Reply - Sistema de Monitoramento Industrial
 
 
 ## 👨‍🎓 Integrantes: 
