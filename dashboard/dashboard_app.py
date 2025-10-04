@@ -67,6 +67,15 @@ def load_data(uploaded_file):
             # Processamento comum para qualquer fonte de dados
             if 'timestamp' in df.columns:
                 df['timestamp'] = pd.to_datetime(df['timestamp'])
+            
+            # --- CORREÇÃO PRINCIPAL ---
+            # Garante que as colunas essenciais para gráficos sejam numéricas.
+            # 'coerce' transforma valores não numéricos em NaN (Not a Number).
+            numeric_cols = ['temperatura', 'vibracao', 'anomalia_score']
+            for col in numeric_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
             return df
 
     except Exception as e:
@@ -123,12 +132,11 @@ def display_main_charts(df):
     with tab2:
         st.subheader("Análise de Correlação entre Sensores")
         
-        # CORREÇÃO: Lógica aprimorada para verificar colunas ausentes e dados vazios
         required_cols = ['temperatura', 'vibracao', 'estado_alerta']
         missing_cols = [col for col in required_cols if col not in df.columns]
 
         if not missing_cols:
-            # Remove linhas com valores nulos nas colunas essenciais
+            # Remove linhas onde os dados numéricos são nulos (após a conversão forçada)
             plot_df = df.dropna(subset=required_cols)
             
             if not plot_df.empty:
@@ -137,7 +145,7 @@ def display_main_charts(df):
                                          color_discrete_map=ALERT_COLORS)
                 st.plotly_chart(fig_scatter, use_container_width=True)
             else:
-                st.warning("As colunas para o gráfico 'Temperatura vs Vibração' existem, mas não há dados válidos para exibir.")
+                st.warning("As colunas para o gráfico 'Temperatura vs Vibração' existem, mas não há dados válidos para exibir após a limpeza.")
         else:
             # Informa exatamente quais colunas estão faltando
             st.warning(f"⚠️ O gráfico 'Temperatura vs Vibração' não pode ser exibido. Colunas ausentes: **{', '.join(missing_cols)}**.")
@@ -148,7 +156,6 @@ def display_main_charts(df):
         
         with col1_alert:
             if 'estado_alerta' in df.columns:
-                # CORREÇÃO: Deixando o Plotly fazer a contagem diretamente do DataFrame. É mais seguro.
                 fig_alerts = px.pie(df, names='estado_alerta', title='Distribuição de Estados de Alerta',
                                     color='estado_alerta', color_discrete_map=ALERT_COLORS)
                 fig_alerts.update_traces(textinfo='percent+label', insidetextorientation='radial')
@@ -164,7 +171,10 @@ def display_main_charts(df):
         st.subheader("Registros com Alertas Críticos")
         criticos_df = df[df['estado_alerta'] == 'CRITICO']
         if not criticos_df.empty:
-            st.dataframe(criticos_df[['timestamp', 'temperatura', 'vibracao', 'distancia', 'anomalia_score']].sort_values('temperatura', ascending=False))
+            # Garante que colunas a serem exibidas existam antes de tentar acessá-las
+            display_cols = ['timestamp', 'temperatura', 'vibracao', 'distancia', 'anomalia_score']
+            existing_cols = [col for col in display_cols if col in criticos_df.columns]
+            st.dataframe(criticos_df[existing_cols].sort_values('temperatura', ascending=False))
         else:
             st.info("✅ Nenhum alerta crítico detectado.")
 
@@ -172,6 +182,11 @@ def display_summary(df):
     """Exibe um resumo executivo com as principais métricas."""
     st.markdown("---")
     st.subheader("📋 Resumo Executivo")
+
+    # Verifica se as colunas necessárias existem antes de calcular
+    if 'estado_alerta' not in df.columns or 'anomalia' not in df.columns or 'temperatura' not in df.columns:
+        st.warning("Não foi possível gerar o resumo. Colunas essenciais estão faltando.")
+        return
 
     criticos = (df['estado_alerta'] == 'CRITICO').sum()
     alertas = (df['estado_alerta'] == 'ALERTA').sum()
