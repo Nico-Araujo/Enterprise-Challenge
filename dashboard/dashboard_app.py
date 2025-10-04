@@ -68,12 +68,17 @@ def load_data(uploaded_file):
             if 'timestamp' in df.columns:
                 df['timestamp'] = pd.to_datetime(df['timestamp'])
             
-            # --- CORREÇÃO PRINCIPAL ---
-            # Garante que as colunas essenciais para gráficos sejam numéricas.
-            # 'coerce' transforma valores não numéricos em NaN (Not a Number).
-            numeric_cols = ['temperatura', 'vibracao', 'anomalia_score']
+            # --- CORREÇÃO PRINCIPAL APRIMORADA ---
+            # Garante que as colunas essenciais para gráficos sejam numéricas,
+            # tratando o caso de separador decimal com vírgula (ex: "29,88").
+            numeric_cols = ['temperatura', 'vibracao', 'anomalia_score', 'distancia']
             for col in numeric_cols:
                 if col in df.columns:
+                    # Se a coluna foi lida como texto (object), tentamos corrigir
+                    if df[col].dtype == 'object':
+                        df[col] = df[col].str.replace(',', '.', regex=False)
+                    
+                    # Converte para numérico, forçando erros a se tornarem Nulos (NaN)
                     df[col] = pd.to_numeric(df[col], errors='coerce')
 
             return df
@@ -248,4 +253,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
