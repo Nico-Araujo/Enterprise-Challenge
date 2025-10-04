@@ -101,7 +101,8 @@ def display_kpis(df):
 
 def display_main_charts(df):
     """Exibe os gráficos principais em abas."""
-    tab1, tab2, tab3, tab4 = st.tabs(['📈 Monitoramento Tempo Real', '🔍 Análise de Sensores', '🚨 Alertas & Anomalias', '📊 Clusters'])
+    # REMOVIDO: Tab de Análise de Sensores e Clusters
+    tab1, tab2 = st.tabs(['📈 Monitoramento Tempo Real', '🚨 Alertas & Anomalias'])
 
     with tab1:
         st.subheader("Monitoramento em Tempo Real dos Sensores")
@@ -121,16 +122,6 @@ def display_main_charts(df):
                 st.plotly_chart(fig_dist, use_container_width=True)
 
     with tab2:
-        st.subheader("Análise de Correlação entre Sensores")
-        if all(col in df.columns for col in ['temperatura', 'vibracao', 'estado_alerta']):
-            fig_scatter = px.scatter(df, x='temperatura', y='vibracao', color='estado_alerta',
-                                     title='Temperatura vs Vibração (Colorido por Alerta)',
-                                     color_discrete_map=ALERT_COLORS)
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        else:
-            st.info("Colunas 'temperatura', 'vibracao' e 'estado_alerta' são necessárias para este gráfico.")
-            
-    with tab3:
         st.subheader("Dashboard de Alertas e Anomalias")
         col1_alert, col2_alert = st.columns(2)
         
@@ -156,21 +147,6 @@ def display_main_charts(df):
         else:
             st.info("✅ Nenhum alerta crítico detectado.")
 
-    with tab4:
-        st.subheader("Análise de Clusters")
-        # MELHORIA: Verifica se a coluna 'cluster' existe e informa o usuário caso não exista.
-        if 'cluster' in df.columns:
-            col1_clust, col2_clust = st.columns(2)
-            with col1_clust:
-                fig_cluster = px.bar(df['cluster'].value_counts().sort_index(), 
-                                     title='Distribuição de Registros por Cluster',
-                                     labels={'index': 'Cluster', 'value': 'Quantidade'})
-                st.plotly_chart(fig_cluster, use_container_width=True)
-            with col2_clust:
-                fig_cluster_temp = px.box(df, x='cluster', y='temperatura', title='Distribuição da Temperatura por Cluster')
-                st.plotly_chart(fig_cluster_temp, use_container_width=True)
-        else:
-            st.warning("⚠️ A coluna 'cluster' não foi encontrada nos dados. A análise de clusters não pode ser exibida.")
 
 def display_summary(df):
     """Exibe um resumo executivo com as principais métricas."""
