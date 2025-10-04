@@ -11,7 +11,6 @@
 Sistema completo de monitoramento industrial 4.0 que integra sensores IoT, machine learning e dashboard em tempo real para predição de falhas e gestão de ativos. Desenvolvido como solução para o desafio Hermes Reply de digitalização industrial.
 
 ## 🎯 Objetivos
-- ✅ **Objetivo 1**:
 - ✅ Pipeline End-to-End: Integração completa desde sensores ESP32 até dashboard com ML
 - ✅ Detecção Inteligente: Machine Learning para identificação de anomalias e padrões
 - ✅ Alertas Proativos: Sistema de notificações baseado em thresholds e modelos preditivos
@@ -40,7 +39,32 @@ Sistema completo de monitoramento industrial 4.0 que integra sensores IoT, machi
 - **Ordens de Manutenção** estão vinculadas a alertas e a usuários responsáveis
 
 ### 📂 Arquivos Disponíveis no Repositório
- -
+🎯 dashboard/
+Interface principal para visualização e monitoramento dos dados.
+Enterprise_Challenge_Dashboard... - Arquivos do dashboard principal
+dados_finais_ml.csv - Dataset processado para machine learning
+dashboard_app.py - Aplicação Streamlit do dashboard
+requirements.txt - Dependências do Python
+streamlit-link.txt - Link de acesso ao dashboard
+db/banco_completo.sql - Script SQL do banco de dados completo
+
+📊 docs/
+Documentação e arquitetura do sistema.
+diagrama-arquitetura.png - Diagrama da arquitetura do sistema
+
+🔄 ingest/
+Sistema de ingestão e simulação de dados dos sensores.
+Teste-1-Normal.png - Exemplo de leitura em estado normal
+Teste-2-Alerta.png - Exemplo de leitura em estado de alerta
+Teste-3-Critico.png - Exemplo de leitura em estado crítico
+leituras_stream.csv - Dados de streaming dos sensores
+main.cpp - Aplicação C++ para processamento
+simulacao_sensores.R - Simulação de sensores em R
+simulacao_sensores.py - Simulação de sensores em Python
+
+🤖 ml/
+Modelo de Machine Learning.
+Enterprise_Challenge_Ml.ipynb - Notebook com análise e modelo de ML
 
 ### Vídeo de Demonstração
 🔗 Clique [AQUI](youtube.com) para ser redirecionado ao vídeo no YouTube.
@@ -91,5 +115,5 @@ As lições técnicas e a robustez da solução incluem:
 ---
 
 **Challenge**: Hermes Reply - Digitalização Industrial  
-**Fase**: 5 - Machine Learning e Computação em Nuvem  
-**Data**: Setembro 2025
+**Fase**: 6 - Machine Learning e Computação em Nuvem  
+**Data**: Outubro 2025
